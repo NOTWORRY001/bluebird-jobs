@@ -36,6 +36,7 @@ export default function WorkerHome() {
   const [applications, setApplications] = useState<Map<string, 'interested' | 'not_interested'>>(new Map());
   const [location, setLocation] = useState<string>('Fetching location...');
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [savedJobs, setSavedJobs] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (navigator.geolocation) {
@@ -46,6 +47,7 @@ export default function WorkerHome() {
     }
     fetchJobs();
     fetchApplications();
+    fetchSavedJobs();
   }, []);
 
   const fetchJobs = async () => {
@@ -115,6 +117,35 @@ export default function WorkerHome() {
     });
   };
 
+  const fetchSavedJobs = async () => {
+    if (!user?.id) return;
+    try {
+      const { data, error } = await supabase
+        .from('saved_jobs')
+        .select('job_id')
+        .eq('worker_id', user.id);
+      if (!error && data) {
+        const savedSet = new Set(data.map(item => item.job_id));
+        setSavedJobs(savedSet);
+        return;
+      }
+    } catch (error) {
+      console.log('Supabase error, using localStorage for saved jobs');
+    }
+    const localSaved = JSON.parse(localStorage.getItem(`saved_jobs_${user?.id}`) || '[]');
+    setSavedJobs(new Set(localSaved));
+  };
+
+  const handleSaveChange = (jobId: string, saved: boolean) => {
+    const newSavedJobs = new Set(savedJobs);
+    if (saved) {
+      newSavedJobs.add(jobId);
+    } else {
+      newSavedJobs.delete(jobId);
+    }
+    setSavedJobs(newSavedJobs);
+  };
+
   const filteredJobs = selectedCategory ? jobs.filter(job => job.job_type === selectedCategory) : jobs;
   const applicationsCount = Array.from(applications.values()).filter(status => status === 'interested').length;
 
@@ -123,7 +154,7 @@ export default function WorkerHome() {
       <Sidebar />
 
       <div className="ml-16 lg:ml-64">
-        <div className="max-w-4xl mx-auto p-6 space-y-8">
+        <div className="w-full px-6 py-6 space-y-8">
           {/* Greeting Section */}
           <section id="greeting">
             <GreetingCard
@@ -178,6 +209,8 @@ export default function WorkerHome() {
                   job={job}
                   applicationStatus={applications.get(job.id) || null}
                   onStatusChange={(status) => handleStatusChange(job.id, status)}
+                  isSaved={savedJobs.has(job.id)}
+                  onSaveChange={(saved) => handleSaveChange(job.id, saved)}
                 />
               ))}
 
