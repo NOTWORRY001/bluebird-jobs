@@ -17,6 +17,8 @@ export interface WorkerProfile {
   availability: 'available' | 'busy' | 'unavailable';
   introMediaUrl?: string;
   introMediaType?: 'video' | 'audio';
+  aadhaarNumber?: string;
+  pastExperience?: string[];
 }
 
 export interface AdminProfile {
@@ -24,6 +26,8 @@ export interface AdminProfile {
   businessName: string;
   location: string;
   contactNumber: string;
+  phone?: string;
+  profilePhoto?: string;
 }
 
 export interface Job {
